@@ -11,6 +11,9 @@
 #SBATCH --partition=sc-gpu
 hostname; pwd; date
 
+source "$HOME/anaconda3/etc/profile.d/conda.sh"
+conda activate "$HOME/anaconda3/envs/py311"
+
 set -euo pipefail
 
 cd "${SLURM_SUBMIT_DIR:-$(pwd)}"
