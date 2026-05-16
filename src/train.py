@@ -1,10 +1,23 @@
+import os
+from pathlib import Path
+
 import hydra
-from omegaconf import DictConfig
+from dotenv import load_dotenv
+from hydra.utils import get_original_cwd
+from omegaconf import DictConfig, open_dict
 from data import get_data, get_collators
 from model import get_model
 from trainer import load_trainer
 from evals import get_evaluators
 from trainer.utils import seed_everything
+
+
+def configure_wandb(cfg: DictConfig):
+    if os.environ.get("WANDB_API_KEY") and os.environ.get("WANDB_DISABLED") != "true":
+        os.environ.setdefault("WANDB_PROJECT", "open-unlearning")
+        os.environ.setdefault("WANDB_NAME", cfg.task_name)
+        with open_dict(cfg):
+            cfg.trainer.args.report_to = "wandb"
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train.yaml")
@@ -13,6 +26,8 @@ def main(cfg: DictConfig):
     Args:
         cfg (DictConfig): Config to train
     """
+    load_dotenv(Path(get_original_cwd()) / ".env")
+    configure_wandb(cfg)
     seed_everything(cfg.trainer.args.seed)
     mode = cfg.get("mode", "train")
     model_cfg = cfg.model
