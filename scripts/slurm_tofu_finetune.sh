@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
 # Request more time using "--time=<hours:mins:secs>". E.g.:
-#SBATCH --time=00:30:00
+#SBATCH --time=01:30:00
 # Request time partition "--partition=<Partition>". E.g.:
 #SBATCH --partition=sc-gpu
 hostname; pwd; date
@@ -27,7 +27,6 @@ echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset}"
 models=(
     "Qwen2.5-0.5B-Instruct"
 )
-per_device_train_batch_size=4 # Effective batch size 32 on two GPUs with gradient_accumulation_steps=4
 
 splits=(
     "forget01 holdout01 retain99"
@@ -53,7 +52,6 @@ for split in "${splits[@]}"; do
         model=${model} \
         data/datasets@data.train=TOFU_QA_retain \
         data.train.TOFU_QA_retain.args.hf_args.name=${retain_split} \
-        trainer.args.per_device_train_batch_size=${per_device_train_batch_size} \
         trainer.args.ddp_find_unused_parameters=true \
         trainer.args.gradient_checkpointing=true
 
@@ -80,7 +78,6 @@ for model in "${models[@]}"; do
     model=${model} \
     data/datasets@data.train=TOFU_QA_full \
     data.train.TOFU_QA_full.args.hf_args.name=full \
-    trainer.args.per_device_train_batch_size=${per_device_train_batch_size} \
     trainer.args.ddp_find_unused_parameters=true \
     trainer.args.gradient_checkpointing=true
 
