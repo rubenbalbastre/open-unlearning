@@ -32,7 +32,6 @@ pip uninstall -y torch torchvision torchaudio
 pip install --index-url https://download.pytorch.org/whl/cu118 torch torchvision torchaudio
 
 pip install ".[lm-eval]"
-pip install python-dotenv
-pip install --no-build-isolation flash-attn==2.6.3
+# pip install --no-build-isolation flash-attn==2.6.3
 
 date
