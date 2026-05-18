@@ -28,8 +28,8 @@ echo "Install requirements"
 pip install -r /home/balalru/open-unlearning/requirements.txt
 pip uninstall -y torch torchvision torchaudio
 
-# PyTorch CUDA 11.8 wheels (commonly include V100 support)
-pip install --index-url https://download.pytorch.org/whl/cu118 torch torchvision torchaudio
+# PyTorch CUDA 12.6 wheels
+pip install --index-url https://download.pytorch.org/whl/cu126 torch torchvision torchaudio
 
 pip install ".[lm-eval]"
 # pip install --no-build-isolation flash-attn==2.6.3
