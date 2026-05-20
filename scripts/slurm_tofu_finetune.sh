@@ -3,7 +3,7 @@
 #SBATCH --output=logs/slurm-%x-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=16
 # Request more time using "--time=<hours:mins:secs>". E.g.:
 #SBATCH --time=01:30:00
@@ -21,11 +21,11 @@ cd "${SLURM_SUBMIT_DIR:-$(pwd)}"
 export MASTER_PORT=$(python -c "import socket; s=socket.socket(); s.bind(('', 0)); print(s.getsockname()[1]); s.close()")
 echo "Master Port: $MASTER_PORT"
 echo "Running on node(s): ${SLURM_JOB_NODELIST:-local}"
-echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset}"
+echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0,1}"
 
 
 models=(
-    "Qwen2.5-0.5B-Instruct"
+    "Qwen2.5-3B-Instruct"
 )
 
 splits=(
@@ -40,30 +40,30 @@ splits=(
 ########################################### RETAIN Finetuned TOFU ######################################################
 ########################################################################################################################
 
-for split in "${splits[@]}"; do
-    forget_split=$(echo $split | cut -d' ' -f1)
-    holdout_split=$(echo $split | cut -d' ' -f2)
-    retain_split=$(echo $split | cut -d' ' -f3)
+# for split in "${splits[@]}"; do
+#     forget_split=$(echo $split | cut -d' ' -f1)
+#     holdout_split=$(echo $split | cut -d' ' -f2)
+#     retain_split=$(echo $split | cut -d' ' -f3)
     
-    for model in "${models[@]}"; do
-        accelerate launch --config_file configs/accelerate/default_config.yaml --main_process_port $MASTER_PORT \
-        src/train.py experiment=finetune/tofu/default.yaml \
-        task_name=tofu_${model}_${retain_split} \
-        model=${model} \
-        data/datasets@data.train=TOFU_QA_retain \
-        data.train.TOFU_QA_retain.args.hf_args.name=${retain_split} \
-        trainer.args.ddp_find_unused_parameters=true \
-        trainer.args.gradient_checkpointing=true
+#     for model in "${models[@]}"; do
+#         accelerate launch --config_file configs/accelerate/default_config.yaml --main_process_port $MASTER_PORT \
+#         src/train.py experiment=finetune/tofu/default.yaml \
+#         task_name=tofu_${model}_${retain_split} \
+#         model=${model} \
+#         data/datasets@data.train=TOFU_QA_retain \
+#         data.train.TOFU_QA_retain.args.hf_args.name=${retain_split} \
+#         trainer.args.ddp_find_unused_parameters=true \
+#         trainer.args.gradient_checkpointing=true
 
     
-        python src/eval.py experiment=eval/tofu/default.yaml \
-        forget_split=${forget_split} \
-        holdout_split=${holdout_split} \
-        task_name=tofu_${model}_${retain_split} \
-        model=${model} \
-        model.model_args.pretrained_model_name_or_path=saves/finetune/tofu_${model}_${retain_split}
-    done
-done
+#         python src/eval.py experiment=eval/tofu/default.yaml \
+#         forget_split=${forget_split} \
+#         holdout_split=${holdout_split} \
+#         task_name=tofu_${model}_${retain_split} \
+#         model=${model} \
+#         model.model_args.pretrained_model_name_or_path=saves/finetune/tofu_${model}_${retain_split}
+#     done
+# done
 
 
 # ########################################################################################################################
