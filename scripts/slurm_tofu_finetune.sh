@@ -3,7 +3,7 @@
 #SBATCH --output=logs/slurm-%x-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
 # Request more time using "--time=<hours:mins:secs>". E.g.:
 #SBATCH --time=01:30:00
@@ -21,7 +21,7 @@ cd "${SLURM_SUBMIT_DIR:-$(pwd)}"
 export MASTER_PORT=$(python -c "import socket; s=socket.socket(); s.bind(('', 0)); print(s.getsockname()[1]); s.close()")
 echo "Master Port: $MASTER_PORT"
 echo "Running on node(s): ${SLURM_JOB_NODELIST:-local}"
-echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0,1}"
+echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-0}"
 
 
 models=(

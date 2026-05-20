@@ -12,3 +12,16 @@ template_args:
   user_end_tag: "<|im_end|>\n"
   asst_start_tag: "<|im_start|>assistant\n"
   asst_end_tag: "<|im_end|>\n"
+lora_args:
+  r: 16
+  alpha: 32
+  init_strategy: "gaussian"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj" 
+  number_layers_to_transform: 3
