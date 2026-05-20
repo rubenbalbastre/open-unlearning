@@ -6,7 +6,7 @@ import hydra
 from dotenv import load_dotenv
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import get_original_cwd
-from omegaconf import DictConfig, open_dict
+from omegaconf import DictConfig, OmegaConf, open_dict
 from data import get_data, get_collators
 from model import get_model
 from trainer import load_trainer
@@ -41,11 +41,18 @@ def apply_lora_to_model(model, model_cfg):
             r=lora_args.r,
             lora_alpha=lora_args.alpha,
             init_lora_weights=lora_args.init_strategy,
-            target_modules=lora_args.target_modules,
+            target_modules=OmegaConf.to_container(
+                lora_args.target_modules, resolve=True
+            ),
             task_type="CAUSAL_LM",
             bias="none",
             layers_pattern="layers",
-            layers_to_transform=list(range(num_hidden_layers - lora_args.number_layers_to_transform, num_hidden_layers))
+            layers_to_transform=list(
+                range(
+                    num_hidden_layers - lora_args.number_layers_to_transform,
+                    num_hidden_layers,
+                )
+            ),
         )
         model = get_peft_model(model, lora_config)
     return model
