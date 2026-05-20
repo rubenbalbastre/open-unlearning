@@ -79,7 +79,6 @@ for model in "${models[@]}"; do
     data/datasets@data.train=TOFU_QA_full \
     data.train.TOFU_QA_full.args.hf_args.name=full \
     trainer.args.ddp_find_unused_parameters=true \
-    trainer.args.gradient_checkpointing=true
 
     # Evaluate the full models on each forget split
     for split in "${splits[@]}"; do
