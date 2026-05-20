@@ -1,8 +1,10 @@
 import os
+import re
 from pathlib import Path
 
 import hydra
 from dotenv import load_dotenv
+from hydra.core.hydra_config import HydraConfig
 from hydra.utils import get_original_cwd
 from omegaconf import DictConfig, open_dict
 from data import get_data, get_collators
@@ -18,6 +20,15 @@ def configure_wandb(cfg: DictConfig):
         os.environ.setdefault("WANDB_NAME", cfg.task_name)
         with open_dict(cfg):
             cfg.trainer.args.report_to = "wandb"
+
+
+def configure_huggingface():
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+    if token:
+        os.environ.setdefault("HF_TOKEN", token)
+        from huggingface_hub import login
+
+        login(token=token, add_to_git_credential=False)
 
 
 def apply_lora_to_model(model, model_cfg):
@@ -40,6 +51,35 @@ def apply_lora_to_model(model, model_cfg):
     return model
 
 
+def _slug(value):
+    value = str(value).split("/")[-1]
+    value = re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip(".-")
+    return value or "unknown"
+
+
+def get_hub_repo_id(cfg: DictConfig):
+    choices = HydraConfig.get().runtime.choices if HydraConfig.initialized() else {}
+    model_name = cfg.model.model_args.get(
+        "pretrained_model_name_or_path", choices.get("model", "model")
+    )
+    dataset_names = [
+        dataset_name
+        for choice_name, dataset_name in sorted(choices.items())
+        if choice_name.startswith("data/datasets@data.") and dataset_name
+    ]
+    if not dataset_names:
+        dataset_names = [
+            dataset_name
+            for split_cfg in cfg.data.values()
+            if isinstance(split_cfg, DictConfig)
+            for dataset_name in split_cfg.keys()
+        ]
+    dataset_part = "-".join(_slug(name) for name in dataset_names) or _slug(
+        cfg.data.get("anchor", "data")
+    )
+    return f"llm-unlearning-{_slug(model_name)}-{dataset_part}"
+
+
 @hydra.main(version_base=None, config_path="../configs", config_name="train.yaml")
 def main(cfg: DictConfig):
     """Entry point of the code to train models
@@ -48,6 +88,7 @@ def main(cfg: DictConfig):
     """
     load_dotenv(Path(get_original_cwd()) / ".env")
     configure_wandb(cfg)
+    configure_huggingface()
     seed_everything(cfg.trainer.args.seed)
     mode = cfg.get("mode", "train")
 
@@ -103,6 +144,10 @@ def main(cfg: DictConfig):
     if trainer_args.do_eval:
         trainer.evaluate(metric_key_prefix="eval")
 
+    # Push to Hugging Face Hub
+    repo_id = get_hub_repo_id(cfg)
+    model.push_to_hub(repo_id=repo_id, organization="ruben-balbastre-alcocer", private=True)
+    tokenizer.push_to_hub(repo_id=repo_id, organization="ruben-balbastre-alcocer", private=True)
 
 if __name__ == "__main__":
     main()
