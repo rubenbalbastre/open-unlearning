@@ -23,6 +23,50 @@ class FinetuneTrainer(Trainer):
             kwargs["eval_dataset"] = _EVAL_PLACEHOLDER
         super().__init__(*args, **kwargs)
 
+    def create_optimizer(self):
+        if self.optimizer is not None:
+            return self.optimizer
+
+        decay_parameters = self.get_decay_parameter_names(self.model)
+        optimizer_grouped_parameters = [
+            {
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if n in decay_parameters and p.requires_grad
+                ],
+                "weight_decay": self.args.weight_decay,
+            },
+            {
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if n not in decay_parameters and p.requires_grad
+                ],
+                "weight_decay": 0.0,
+            },
+        ]
+        optimizer_grouped_parameters = [
+            group for group in optimizer_grouped_parameters if group["params"]
+        ]
+
+        if self.optimizer_cls_and_kwargs is not None:
+            optimizer_cls, optimizer_kwargs = self.optimizer_cls_and_kwargs
+        else:
+            optimizer_cls, optimizer_kwargs = self.get_optimizer_cls_and_kwargs(
+                self.args, self.model
+            )
+
+        if "params" in optimizer_kwargs:
+            optimizer_grouped_parameters = optimizer_kwargs.pop("params")
+        if "model" in optimizer_kwargs:
+            optimizer_grouped_parameters = optimizer_kwargs.pop("model")
+        if "optimizer_dict" in optimizer_kwargs:
+            optimizer_grouped_parameters = optimizer_kwargs.pop("optimizer_dict")
+
+        self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
+        return self.optimizer
+
     def evaluate(
         self,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
